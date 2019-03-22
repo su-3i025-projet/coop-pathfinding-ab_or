@@ -32,7 +32,7 @@ def init(_boardname=None):
     game = Game('Cartes/' + name + '.json', SpriteBuilder)
     game.O = Ontology(True, 'SpriteSheet-32x32/tiny_spritesheet_ontology.csv')
     game.populate_sprite_names(game.O)
-    game.fps = 15 # frames per second
+    game.fps = 70 # frames per second
     game.mainiteration()
     game.mask.allow_overlaping_players = True
     #player = game.player
@@ -141,19 +141,70 @@ def collisionCoop(init_States,goal_States, wallStates):
     for j in res[i]:
       wS.append(j)
   return res
-      
-
-def voisinrandom(posplayer,wallStates):
+ 
+#cases Prises dico, de cle la case et de valeur le temp
+#recursion boolean permet de juste calculer le chemin pour un element
+#collision permet de gerer les collisions
+def coopavancee(initStates,goalStates,wallStates,casesPrises,recursion,collision):
+    res=[]
+    wS=wallStates.copy()
+    #si recursion on cherche juste le chemin pour sans avec la case bloquée en mur
+    if recursion:
+        return astar([initStates[0]],[goalStates[0]],wS)
+    if collision:
+        return astar([initStates],[goalStates],wS)
+    #astar pour chaque joueur
+    for i in range(0,len(initStates)):
+        res.append([])
+        res[i]=astar([initStates[i]],[goalStates[i]],wS)
+        #on parcours le astar et recherche si les cases sont dispo
+        for j in range(len(res[i])):
+            #si la case est déjà prise a l'instant j
+            if res[i][j] in casesPrises:
+                if casesPrises[res[i][j]]==j:
+                    #on cherche un nouveau astar pour aller de la case j-1 a j+1, avec donc j en mur
+                    wS.append(res[i][j])
+                    print(res[i])
+                    print(j)
+                    if (j-1)<0 or (j+1)>len(res[i])-1:
+                        print("Je ne peut pas accéder a ma fiole, j'attend")
+                        res[i].append(res[i][j])
+                        continue
+                    new=coopavancee([res[i][j-1]],[res[i][j+1]],wS,casesPrises,True,False)
+                    wS=wallStates.copy()
+                    newres=[]
+                    #on crée le nouvel astar avec les nouvelles cases
+                    for k in range(len(res[i])):
+                        if k<j:
+                            newres.append(res[i][k])
+                        elif k==j:
+                            for l in new:
+                                newres.append(l)
+                        else:
+                            newres.append(res[i][k])
+                    res[i]=newres
+            #si la case est validée, on l'ajoute a casePrises
+            else:
+                casesPrises[res[i][j]]=j
+    print(res)
+    return res,casesPrises
+            
+            
+     
+#Aurait pu permettre de regler le cas ou deux s'arretent sur la fiole de l'autre, face a face, de se decaler
+def voisinrandom(posplayer,wallStates,i):
   res=[]
-  if (posplayer[0],posplayer[1]-1) not in wallStates:
-    res.append((posplayer[0],posplayer[1]-1))
-  if (posplayer[0],posplayer[1]+1) not in wallStates:
-    res.append((posplayer[0],posplayer[1]+1))
-  if (posplayer[0]-1,posplayer[1]) not in wallStates:
-    res.append((posplayer[0]-1,posplayer[1]))
-  if (posplayer[0]+1,posplayer[1]) not in wallStates:
-    res.append((posplayer[0]+1,posplayer[1]))
-  return random.choice(res)
+  if (posplayer[i][0],posplayer[i][1]-1) not in wallStates:
+    res.append((posplayer[i][0],posplayer[i][1]-1))
+  if (posplayer[i][0],posplayer[i][1]+1) not in wallStates:
+    res.append((posplayer[i][0],posplayer[i][1]+1))
+  if (posplayer[i][0]-1,posplayer[i][1]) not in wallStates:
+    res.append((posplayer[i][0]-1,posplayer[i][1]))
+  if (posplayer[i][0]+1,posplayer[i][1]) not in wallStates:
+    res.append((posplayer[i][0]+1,posplayer[i][1]))
+  resultat=random.choice(res)
+  print(resultat)
+  return resultat
   
   
 def main():
@@ -226,7 +277,15 @@ def main():
         collisiones.append(None)
         
       #pour coopérative de base
-      listeAstar=collisionCoop(initStates,goalStates,wallS)
+      #listeAstar=collisionCoop(initStates,goalStates,wallS)
+      
+      #pour coopérative avanc&e
+      listeAstar,casesPrises=coopavancee(initStates,goalStates,wallS,{},False,False)
+      
+      for m in range(len(posPlayers)):
+          if posPlayers[m] in goalStates:
+              print("Sur une fiole, je décale")
+              posPlayers[m]=voisinrandom(posPlayers,wallS,m)
       
       #maxLen = longueur du plus long parcours
       #iteration sur maxlen avec un while (ne pas oublier d'iterer i)
@@ -236,6 +295,7 @@ def main():
                 #personne ont trouvé leur fiole pour permettre d'attendre que tout le monde 
                 #ai la sienne
                 continue
+             
               next_row,next_col=listeAstar[j][i]
               #collision
               if (next_row, next_col) in posPlayers:
@@ -248,8 +308,29 @@ def main():
                       print('Collsion entre ',j, 'et', k)
                       adv=k
                   #if collisiones[j]==None:
-                  listeAstar[j]=collisionOp([posPlayers[j]],[goalStates[j]],wallS,i,(next_row,next_col),True,j,adv,listeAstar[j])
-                     #collisiones[j]=adv
+                  
+                  #coop de base
+                  ###listeAstar[j]=collisionOp([posPlayers[j]],[goalStates[j]],wallS,i,(next_row,next_col),True,j,adv,listeAstar[j])
+                     
+                  #coop avancée
+                  ws=wallS.copy()
+                  ws.append((next_row, next_col))
+                  newnext=coopavancee(posPlayers[j],goalStates[j],ws,casesPrises,False,True)
+                  newres=[]
+                  for m in range(len(listeAstar[j])):
+                      if m<i:
+                          newres.append(listeAstar[j][m])
+                      else:
+                          for p in newnext:
+                              newres.append(p)
+                          break
+                  for g in range(len(newres)):
+                      casesPrises[newres[g]]=g
+                  listeAstar[j]=newres
+                  print(listeAstar[j])
+                  print(i)
+                  
+                  #collisiones[j]=adv
                   #elif collisiones[j]==adv:
                     #collisiones[j]=None
               #else:
