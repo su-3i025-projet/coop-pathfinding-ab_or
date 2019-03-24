@@ -143,14 +143,10 @@ def collisionCoop(init_States,goal_States, wallStates):
   return res
  
 #cases Prises dico, de cle la case et de valeur le temp
-#recursion boolean permet de juste calculer le chemin pour un element
 #collision permet de gerer les collisions
-def coopavancee(initStates,goalStates,wallStates,casesPrises,recursion,collision):
+def coopavancee(initStates,goalStates,wallStates,casesPrises,collision):
     res=[]
     wS=wallStates.copy()
-    #si recursion on cherche juste le chemin pour sans avec la case bloquée en mur
-    if recursion:
-        return astar([initStates[0]],[goalStates[0]],wS)
     if collision:
         return astar([initStates],[goalStates],wS)
     #astar pour chaque joueur
@@ -170,7 +166,7 @@ def coopavancee(initStates,goalStates,wallStates,casesPrises,recursion,collision
                         print("Je ne peut pas accéder a ma fiole, j'attend")
                         res[i].append(res[i][j])
                         continue
-                    new=coopavancee([res[i][j-1]],[res[i][j+1]],wS,casesPrises,True,False)
+                    new=astar([res[i][j-1]],[res[i][j+1]],wS)
                     wS=wallStates.copy()
                     newres=[]
                     #on crée le nouvel astar avec les nouvelles cases
@@ -285,7 +281,7 @@ def main():
       #listeAstar=collisionCoop(initStates,goalStates,wallS)
       
       #pour coopérative avanc&e
-      listeAstar,casesPrises=coopavancee(initStates,goalStates,wallS,{},False,False)
+      listeAstar,casesPrises=coopavancee(initStates,goalStates,wallS,{},False)
       
       for m in range(len(posPlayers)):
           if posPlayers[m] in goalStates:
@@ -320,7 +316,7 @@ def main():
                   #coop avancée
                   ws=wallS.copy()
                   ws.append((next_row, next_col))
-                  newnext=coopavancee(posPlayers[j],goalStates[j],ws,casesPrises,False,True)
+                  newnext=coopavancee(posPlayers[j],goalStates[j],ws,casesPrises,True)
                   newres=[]
                   for m in range(len(listeAstar[j])):
                       if m<i:
