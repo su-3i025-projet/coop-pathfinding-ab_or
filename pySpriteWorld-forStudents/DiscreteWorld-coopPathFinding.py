@@ -59,19 +59,19 @@ def astar(initState, goalState, wallStates):
                 listeCoups.append(newPos)   #on fait une nouvelle liste avec les nouveau coup qui respectent les critere
 
                 
-                for c in coupexplore:#{
-                    if c[0] == positionDepart.get("pos"):
-                        a = c
+                for coup in coupexplore:#{
+                    if coup[0] == positionDepart.get("pos"):
+                        temp = coup
                         break #}
                                    
-                while a[3]:   
+                while temp[3]:   
                   #{
-                    listeCoups.append(a[0])
-                    newPos = a[3] 
+                    listeCoups.append(temp[0])
+                    newPos = temp[3] 
                     
-                    for c in coupexplore:
-                        if c[0] == newPos:
-                            a = c
+                    for coup in coupexplore:
+                        if coup[0] == newPos:
+                            temp = coup
                             break 
                   #}
                   
@@ -79,10 +79,10 @@ def astar(initState, goalState, wallStates):
                   
                 #return de la fonction est la 
                 listeCoups.append(initState[0])
-                ltmp = []
+                listetemp = []
                 for k in range(len(listeCoups),0,-1):
-                    ltmp.append(listeCoups[k-1])
-                return ltmp
+                    listetemp.append(listeCoups[k-1])
+                return listetemp
               if not (newlig,newcol) in reserve:#{
                     score = positionDepart.get("score") + abs(newlig - goalState[0][0]) + abs(newcol - goalState[0][1])
                     tmp = [newPos,positionDepart.get("score")+1,score,positionDepart.get("pos")]
@@ -161,7 +161,7 @@ def coopavancee(initStates,goalStates,wallStates,casesPrises,recursion,collision
         for j in range(len(res[i])):
             #si la case est déjà prise a l'instant j
             if res[i][j] in casesPrises:
-                if casesPrises[res[i][j]]==j:
+                if j in casesPrises[res[i][j]]:
                     #on cherche un nouveau astar pour aller de la case j-1 a j+1, avec donc j en mur
                     wS.append(res[i][j])
                     print(res[i])
@@ -185,7 +185,12 @@ def coopavancee(initStates,goalStates,wallStates,casesPrises,recursion,collision
                     res[i]=newres
             #si la case est validée, on l'ajoute a casePrises
             else:
-                casesPrises[res[i][j]]=j
+                if res[i][j] in casesPrises:
+                    val=casesPrises[res[i][j]]
+                    val.append(j)
+                    casesPrises[res[i][j]]=val
+                else:
+                    casesPrises[res[i][j]]=[j]
     print(res)
     return res,casesPrises
             
@@ -325,7 +330,12 @@ def main():
                               newres.append(p)
                           break
                   for g in range(len(newres)):
-                      casesPrises[newres[g]]=g
+                                 if newres[g]in casesPrises:
+                                         val=casesPrises[newres[g]]
+                                         val.append(g)
+                                         casesPrises[newres[g]]=val
+                                 else:
+                                             casesPrises[newres[g]]=[g]
                   listeAstar[j]=newres
                   print(listeAstar[j])
                   print(i)
